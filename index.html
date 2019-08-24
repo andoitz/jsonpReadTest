@@ -1,0 +1,73 @@
+<html>
+<head>
+<script src="vue.min.js"></script>
+</head>
+<body>
+<div id="test">
+	<button type="button" v-on:click="readFile()">Read File</button>
+	<button type="button" v-on:click="increaseSaveNumber()">Increase Save Number</button>
+	<button type="button" id="saveFile">Save File</button>
+	<div id="code">{{ currentFile }}</div>
+</div>
+<script>
+var jsonp = {
+    callbackCounter: 0,
+	callback: null,
+	vue: null,
+ 
+    fetch: function(url, vue, callback) {
+        var fn = 'jsonp.loadFile_' + this.callbackCounter++; //To prevent cache
+        this.callback = callback
+		this.vue = vue
+        url = url.replace('=jsonp.loadFile', '=' + fn);
+ 
+        var scriptTag = document.createElement('SCRIPT');
+        scriptTag.src = url;
+        document.getElementsByTagName('HEAD')[0].appendChild(scriptTag);
+    },
+	loadFile: function(data){
+		this.vue.currentFile = data
+		this.callback(data)
+		this.saveFile(this.vue.jsonFile,this.vue.currentFile) //Link button to file
+	},
+	saveFile: function(path, json){
+		var textFile = null
+		var saveButton = document.getElementById('saveFile');
+		saveButton.addEventListener('click', function(){
+			var link = document.createElement('a');
+			link.setAttribute('download', "food.json");
+			var data = new Blob(["jsonp.loadFile("+JSON.stringify(json)+")"], {type: 'text/plain'});
+			if (textFile !== null) window.URL.revokeObjectURL(textFile);
+			textFile = window.URL.createObjectURL(data);
+			link.href = textFile;
+			document.body.appendChild(link);
+			window.requestAnimationFrame(function () {
+				var event = new MouseEvent('click');
+				link.dispatchEvent(event);
+				document.body.removeChild(link);
+			});
+		}, false);
+	}
+}
+
+new Vue ({
+	el: '#test',
+	data:{
+		jsonFile: 'saves/food.json',
+		currentFile: 'Not Loaded'
+	},
+
+	methods:{
+		readFile: function(){
+			jsonp.fetch(this.jsonFile, this, function(data){
+				console.log(data)
+			})
+		},
+		increaseSaveNumber: function(){
+			this.currentFile.saveNumber++
+		}
+	}
+})
+</script>
+</body>
+</html>
